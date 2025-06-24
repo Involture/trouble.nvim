@@ -324,7 +324,7 @@ end
 
 ---@param client vim.lsp.Client
 ---@param locations? lsp.Location[]|lsp.LocationLink[]|lsp.Location
----@param opts? {include_current?:boolean}
+---@param opts? {include_current?:boolean, load_locations?:boolean}
 function M.get_items(client, locations, opts)
   opts = opts or {}
   locations = locations or {}
@@ -333,7 +333,8 @@ function M.get_items(client, locations, opts)
 
   locations = vim.list_slice(locations, 1, Config.max_items)
 
-  local items = M.locations_to_items(client, locations)
+  local load_locations = opts.load_locations ~= false
+  local items = M.locations_to_items(client, locations, load_locations)
 
   local cursor = vim.api.nvim_win_get_cursor(0)
   local fname = vim.api.nvim_buf_get_name(0)
@@ -353,9 +354,10 @@ end
 ---@alias lsp.Loc lsp.Location|lsp.LocationLink
 ---@param client vim.lsp.Client
 ---@param locs lsp.Loc[]
+---@param load_locations? boolean
 ---@return trouble.Item[]
-function M.locations_to_items(client, locs)
-  local ranges = M.locations_to_ranges(client, locs)
+function M.locations_to_items(client, locs, load_locations)
+  local ranges = M.locations_to_ranges(client, locs, load_locations)
   ---@param range trouble.Range.lsp
   return vim.tbl_map(function(range)
     return M.range_to_item(client, range)
@@ -473,7 +475,8 @@ end
 
 ---@param client vim.lsp.Client
 ---@param locs lsp.Loc[]
-function M.locations_to_ranges(client, locs)
+---@param load_locations? boolean
+function M.locations_to_ranges(client, locs, load_locations)
   local todo = {} ---@type table<string, {locs:lsp.Loc[], rows:table<number,number>}>
   for _, d in ipairs(locs) do
     local uri = d.uri or d.targetUri
@@ -491,7 +494,9 @@ function M.locations_to_ranges(client, locs)
   for uri, t in pairs(todo) do
     local buf = vim.uri_to_bufnr(uri)
     local filename = vim.uri_to_fname(uri)
-    local lines = Util.get_lines({ rows = vim.tbl_keys(t.rows), buf = buf }) or {}
+    local lines = load_locations and
+        Util.get_lines({ rows = vim.tbl_keys(t.rows), buf = buf })
+        or {}
     for _, loc in ipairs(t.locs) do
       local range = loc.range or loc.targetSelectionRange
       local line = lines[range.start.line + 1] or ""
