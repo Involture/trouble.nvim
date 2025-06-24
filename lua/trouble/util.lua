@@ -39,7 +39,7 @@ function M.notify(msg, opts)
   msg = type(msg) == "table" and table.concat(msg, "\n") or msg
   ---@cast msg string
   msg = vim.trim(msg)
-  local ret = vim[opts.once and "notify_once" or "notify"](msg, opts.level, {
+  local ret = require('notify')(msg, opts.level, {
     replace = opts.id and notif_ids[opts.id] or nil,
     title = opts.title or "Trouble",
     on_open = function(win)

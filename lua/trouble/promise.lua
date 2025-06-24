@@ -134,6 +134,38 @@ function P:timeout(ms)
   end)
 end
 
+local free_id = 0
+local function get_free_id()
+  free_id = free_id + 1
+  return free_id
+end
+
+function P:progress(msg, after)
+  after = after or 0
+  local notif_id = vim.fn.string(get_free_id())
+  local function notify(elapsed)
+    local msg_elapsed = vim.deepcopy(msg)
+    vim.list_extend(msg_elapsed, { elapsed .. "s" })
+    vim.schedule(function () Util.info(msg_elapsed, { id = notif_id }) end)
+  end
+  local function loop_notify()
+    local timer = (vim.uv or vim.loop).new_timer()
+    local elapsed = 0
+    timer:start(0, 1000, function()
+      if self:is_pending() then
+        if elapsed * 1000 >= after then notify(elapsed) end
+        elapsed = elapsed + 1
+      else
+        timer:close()
+      end
+    end)
+  end
+  return P.new(function(resolve, reject)
+    loop_notify()
+    self:next(resolve, reject)
+  end)
+end
+
 local M = {}
 
 function M.resolve(value)

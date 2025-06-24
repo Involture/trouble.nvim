@@ -78,7 +78,14 @@ function M:refresh(opts)
     end)
   end)
     :catch(Util.error)
-    :timeout(2000)
+    :timeout(15000)
+    :progress(
+      {
+        "Waiting for task **" .. self.opts.mode .. "**",
+        "Buffer: " .. vim.api.nvim_buf_get_name(self:main().buf)
+      },
+      2000
+    )
     :catch(function()
       Util.warn({
         "**" .. self.opts.mode .. "** timed out",
