@@ -79,7 +79,12 @@ function M:refresh(opts)
   end)
     :catch(Util.error)
     :timeout(2000)
-    :catch(function() end)
+    :catch(function()
+      Util.warn({
+        "**" .. self.opts.mode .. "** timed out",
+        "Buffer: " .. vim.api.nvim_buf_get_name(self:main().buf),
+      })
+    end)
     :finally(function()
       self.fetching = false
     end)
